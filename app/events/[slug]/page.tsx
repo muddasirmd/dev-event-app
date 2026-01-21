@@ -39,17 +39,38 @@ const EventTags = ({ tags }: { tags: string[] }) => (
 const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }>}) => {
 
     const { slug } = await params;
-    const request = await fetch(`${BASE_URL}/api/events/${slug}`);
-    // Nested destructuring to extract event details
-    const { event: {description, image, overview, date, time, location, mode, audience, agenda, tags, organizer} } = await request.json();
+    
+    let event;
+    try {
+        const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
+            next: { revalidate: 60 }
+        });
+
+        if (!request.ok) {
+            if (request.status === 404) {
+                return notFound();
+            }
+            throw new Error(`Failed to fetch event: ${request.statusText}`);
+        }
+
+        const response = await request.json();
+        event = response.event;
+
+        if (!event) {
+            return notFound();
+        }
+    } catch (error) {
+        console.error('Error fetching event:', error);
+        return notFound();
+    }
+
+    const { description, image, overview, date, time, location, mode, agenda, audience, tags, organizer } = event;
 
     if(!description) return notFound();
 
     const bookings = 10;
 
-    const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug)
-
-    console.log("similarEvents : ", similarEvents )
+    const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
 
     return (
         <section id="event">
@@ -101,7 +122,7 @@ const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }>}
                         ) : (
                             <p className="text-sm">Be the first to book your spot!</p>
                         )}
-                        <BookEvent />
+                        <BookEvent eventId={event._id} slug={event.slug} />
                     </div>
                 </aside>
             </div>
