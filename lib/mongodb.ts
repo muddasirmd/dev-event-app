@@ -54,6 +54,8 @@ async function connectDB(): Promise<typeof mongoose> {
   try {
     // Wait for the connection to establish
     cached.conn = await cached.promise;
+     console.log("MongoDB Cached...")
+     console.log(cached)
   } catch (error) {
     // Reset promise on error to allow retry
     cached.promise = null;
